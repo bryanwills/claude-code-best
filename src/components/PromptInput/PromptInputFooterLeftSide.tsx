@@ -137,12 +137,14 @@ function GoalElapsedIndicator(): React.ReactNode {
   }, []);
   void tick;
 
-  const { getGoal, getActiveElapsedMs } =
-    require('../../services/goal/goalState.js') as typeof import('../../services/goal/goalState.js');
-  const goal = getGoal();
+  const goalModule = require('../../services/goal/goalState.js') as unknown as {
+    getGoal: () => { status: string; [k: string]: unknown } | null;
+    getActiveElapsedMs: (g: { status: string; [k: string]: unknown }) => number;
+  };
+  const goal = goalModule.getGoal();
   if (!goal) return null;
 
-  const elapsedMs = getActiveElapsedMs(goal);
+  const elapsedMs = goalModule.getActiveElapsedMs(goal);
   const totalSeconds = Math.floor(elapsedMs / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -429,7 +431,7 @@ function ModeIndicator({
       : []),
     // Goal elapsed indicator — compact "goal (XhYmin)" after PID
     ...(feature('GOAL') &&
-    (require('../../services/goal/goalState.js') as typeof import('../../services/goal/goalState.js')).getGoal()
+    (require('../../services/goal/goalState.js') as unknown as { getGoal: () => unknown }).getGoal()
       ? [<GoalElapsedIndicator key="goal-elapsed" />]
       : []),
   ];
