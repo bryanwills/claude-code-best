@@ -99,6 +99,44 @@ describe('extractArtifacts', () => {
     expect(result[0].url).toBeUndefined()
   })
 
+  test('parses url/id/expires from array-form tool_result content', () => {
+    const messages: Message[] = [
+      assistantToolUse('tu1', { file_path: '/tmp/report.html', ttl: 7 }),
+      {
+        type: 'user',
+        uuid: crypto.randomUUID(),
+        message: {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result' as const,
+              tool_use_id: 'tu1',
+              content: [
+                { type: 'text' as const, text: 'Artifact uploaded: ' },
+                {
+                  type: 'text' as const,
+                  text: 'https://x.test/7d/def.html (id: def, expires: 2026-06-27T10:00:00.000Z)',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ]
+
+    const result = extractArtifacts(messages)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      filePath: '/tmp/report.html',
+      hash: 'def',
+      url: 'https://x.test/7d/def.html',
+      expiresAt: '2026-06-27T10:00:00.000Z',
+      basename: 'report.html',
+      isError: false,
+    })
+  })
+
   test('orders newest first (last in conversation appears at top)', () => {
     const messages: Message[] = [
       assistantToolUse('tu1', { file_path: '/tmp/a.html', ttl: 7 }),

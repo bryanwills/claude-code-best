@@ -12,7 +12,7 @@ export type ArtifactInfo = {
   isError: boolean
 }
 
-const URL_REGEX = /https?:\/\/\S+\.html\b/
+const URL_REGEX = /https?:\/\/[^\s)"',]+\.html\b/
 const ID_REGEX = /\bid:\s*([A-Za-z0-9_-]+)/
 const EXPIRES_REGEX = /\bexpires:\s*([0-9T:.Z+-]+)/
 
@@ -27,7 +27,7 @@ export function extractArtifacts(messages: Message[]): ArtifactInfo[] {
     for (const block of content) {
       if (typeof block !== 'object' || block === null) continue
       if (!('type' in block)) continue
-      const b = block as Record<string, unknown>
+      const b = block as unknown as Record<string, unknown>
       if (b.type !== 'tool_use') continue
       if (b.name !== 'artifact') continue
 
@@ -87,7 +87,7 @@ function findToolResult(
     for (const block of content) {
       if (typeof block !== 'object' || block === null) continue
       if (!('type' in block)) continue
-      const b = block as Record<string, unknown>
+      const b = block as unknown as Record<string, unknown>
       if (b.type !== 'tool_result') continue
       if (b.tool_use_id !== toolUseId) continue
       return { content: b.content, is_error: b.is_error as boolean | undefined }
