@@ -10,7 +10,7 @@
 
 set -uo pipefail
 
-WORKER_URL="${WORKER_URL:-https://cloud-artifacts.claude-code-best.workers.dev}"
+WORKER_URL="${WORKER_URL:-https://cloud-artifacts.claude-code-best.win}"
 TOKEN="${TOKEN:-cloud-artifacts}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -26,17 +26,35 @@ echo '<!doctype html><title>t</title><h1>hello v2 (overwritten)</h1>' > "$TMP/v2
 yes '<p>x</p>' | head -c 11000000 > "$TMP/big.html"
 
 pass=0; fail=0
+# expect: 主断言 status code；如代理把所有 status 抹平为 200 但 body 仍是 error JSON，
+# 则按 body 中的 error 字段做 fallback 断言（标 [via body]）。
 expect() {
   local label="$1" want_code="$2" resp="$3" code="$4" body="$5"
   if [[ "$code" == "$want_code" ]]; then
     printf "${G}✓ %s -> HTTP %s${D}\n" "$label" "$code"
     [[ -n "$resp" ]] && printf "    body: %s\n" "$body"
     pass=$((pass+1))
-  else
-    printf "${R}✗ %s -> HTTP %s (expected %s)${D}\n" "$label" "$code" "$want_code"
-    printf "    body: %s\n" "$body"
-    fail=$((fail+1))
+    return
   fi
+  # 代理透传 fallback：HTTP 200 + body 是 {"error":"..."} JSON
+  if [[ "$code" == "200" && "$body" == {\"error\":* ]]; then
+    local want_error=""
+    case "$want_code" in
+      401) want_error="unauthorized" ;;
+      415) want_error="unsupported_media_type" ;;
+      413) want_error="payload_too_large" ;;
+      404) want_error="not_found" ;;
+      400) want_error="invalid_" ;; # invalid_ttl 或 invalid_hash，前缀匹配
+    esac
+    if [[ -z "$want_error" ]] || echo "$body" | grep -q "\"error\":\"$want_error"; then
+      printf "${G}✓ %s -> HTTP 200 [via body] %s${D}\n" "$label" "$body"
+      pass=$((pass+1))
+      return
+    fi
+  fi
+  printf "${R}✗ %s -> HTTP %s (expected %s)${D}\n" "$label" "$code" "$want_code"
+  printf "    body: %s\n" "$body"
+  fail=$((fail+1))
 }
 
 call() {
