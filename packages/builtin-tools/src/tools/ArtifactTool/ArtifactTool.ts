@@ -10,6 +10,7 @@ import {
 } from './prompt.js'
 import { getArtifactsToken, getUploadUrl } from './config.js'
 import { uploadArtifact } from './client.js'
+import { renderToolResultMessage } from './UI.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
@@ -37,11 +38,11 @@ const outputSchema = lazySchema(() =>
     id: z.string(),
     url: z.string(),
     expiresAt: z.string(),
+    error: z.string().optional(),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
-type ArtifactOutput = z.infer<OutputSchema>
-type ArtifactErrorOutput = ArtifactOutput & { error?: string }
+export type ArtifactOutput = z.infer<OutputSchema>
 
 export const ArtifactTool = buildTool({
   name: ARTIFACT_TOOL_NAME,
@@ -87,7 +88,7 @@ export const ArtifactTool = buildTool({
   },
 
   mapToolResultToToolResultBlockParam(
-    content: ArtifactErrorOutput,
+    content: ArtifactOutput,
     toolUseID: string,
   ): ToolResultBlockParam {
     if (content.error) {
@@ -104,6 +105,7 @@ export const ArtifactTool = buildTool({
       content: `Artifact uploaded: ${content.url} (id: ${content.id}, expires: ${content.expiresAt})`,
     }
   },
+  renderToolResultMessage,
 
   async call(input: ArtifactInput) {
     const { file_path, hash, ttl } = input
