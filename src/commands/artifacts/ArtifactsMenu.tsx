@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Box, Text, useInput } from '@anthropic/ink';
+import { Box, Text, setClipboard, useInput } from '@anthropic/ink';
 import type { ArtifactInfo } from './scanner.js';
 import { openBrowser } from 'src/utils/browser.js';
 
@@ -35,7 +35,9 @@ export function ArtifactsMenu({ artifacts, onExit }: Props): React.ReactElement 
     if (input === 'c') {
       const target = artifacts[selected];
       if (target.url) {
-        copyToClipboard(target.url);
+        void setClipboard(target.url).then(raw => {
+          if (raw) process.stdout.write(raw);
+        });
       }
     }
   });
@@ -89,16 +91,4 @@ function ArtifactRow({ artifact, isSelected }: { artifact: ArtifactInfo; isSelec
       ) : null}
     </Box>
   );
-}
-
-// macOS-only clipboard via pbcopy. The CLI is primarily macOS-targeted; on
-// other platforms this is a no-op (URL is still rendered above for the user
-// to select and copy manually).
-function copyToClipboard(text: string): void {
-  try {
-    const { spawnSync } = require('node:child_process') as typeof import('node:child_process');
-    spawnSync('pbcopy', [], { input: text });
-  } catch {
-    // best-effort
-  }
 }
