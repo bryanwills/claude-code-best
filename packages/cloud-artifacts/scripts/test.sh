@@ -2,7 +2,7 @@
 # cloud-artifacts 端到端测试脚本
 # 用法：
 #   WORKER_URL=https://cloud-artifacts.claude-code-best.workers.dev \
-#   TOKEN=cloud-artifacts \
+#   TOKEN=claude-code-best \
 #   bash scripts/test.sh
 #
 # 如本机连不上 workers.dev，可通过代理：
@@ -11,7 +11,7 @@
 set -uo pipefail
 
 WORKER_URL="${WORKER_URL:-https://cloud-artifacts.claude-code-best.win}"
-TOKEN="${TOKEN:-cloud-artifacts}"
+TOKEN="${TOKEN:-claude-code-best}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
